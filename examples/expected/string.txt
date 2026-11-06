@@ -1,7 +1,0 @@
-hello
-hello world
-foobar
-true
-false
-true
-abc

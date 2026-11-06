@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"fucklang/internal/ast"
 	"fucklang/internal/lexer"
 	"fucklang/internal/token"
@@ -10,12 +11,12 @@ import (
 const (
 	_ int = iota
 	LOWEST
-	EQUALS      // == != < > <= >=
-	SUM         // + -
-	PRODUCT     // * /
-	PREFIX      // -x !x
-	CALL        // fn(x)
-	INDEX       // arr[i]
+	EQUALS
+	SUM
+	PRODUCT
+	PREFIX
+	CALL
+	INDEX
 )
 
 var precedences = map[token.Type]int{
@@ -37,6 +38,7 @@ type Parser struct {
 	l         *lexer.Lexer
 	curToken  token.Token
 	peekToken token.Token
+	errors    []string
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -45,6 +47,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.nextToken()
 	return p
 }
+
+func (p *Parser) Errors() []string { return p.errors }
 
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
@@ -110,7 +114,6 @@ func (p *Parser) parseAssignStatement() ast.Statement {
 	ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 	p.nextToken()
 
-	// shit arr[0] = ... 形式
 	if p.curToken.Type == token.LBRACKET {
 		p.nextToken()
 		idx := p.parseExpression(LOWEST)
@@ -123,12 +126,7 @@ func (p *Parser) parseAssignStatement() ast.Statement {
 		}
 		p.nextToken()
 		val := p.parseExpression(LOWEST)
-		return &ast.IndexAssignStatement{
-			Token: stmt.Token,
-			Left:  ident,
-			Index: idx,
-			Value: val,
-		}
+		return &ast.IndexAssignStatement{Token: stmt.Token, Left: ident, Index: idx, Value: val}
 	}
 
 	if p.curToken.Type != token.ASSIGN {
@@ -179,7 +177,6 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	var left ast.Expression
-
 	switch p.curToken.Type {
 	case token.INT:
 		val, _ := strconv.ParseInt(p.curToken.Literal, 10, 64)
@@ -202,6 +199,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return p.parseFunctionLiteral()
 	case token.LBRACKET:
 		left = p.parseArrayLiteral()
+	case token.LBRACE:
+		left = p.parseHashLiteral()
 	default:
 		return nil
 	}
@@ -236,11 +235,7 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	case token.LBRACKET:
 		return p.parseIndexExpression(left)
 	}
-	expr := &ast.InfixExpression{
-		Token:    p.curToken,
-		Left:     left,
-		Operator: p.curToken.Literal,
-	}
+	expr := &ast.InfixExpression{Token: p.curToken, Left: left, Operator: p.curToken.Literal}
 	precedence := p.curPrecedence()
 	p.nextToken()
 	expr.Right = p.parseExpression(precedence)
@@ -341,4 +336,31 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 		p.nextToken()
 	}
 	return expr
+}
+
+func (p *Parser) parseHashLiteral() ast.Expression {
+	hash := &ast.HashLiteral{Token: p.curToken}
+	hash.Pairs = make(map[ast.Expression]ast.Expression)
+	for p.peekToken.Type != token.RBRACE {
+		p.nextToken()
+		key := p.parseExpression(LOWEST)
+		if p.peekToken.Type != token.COLON {
+			return nil
+		}
+		p.nextToken()
+		p.nextToken()
+		value := p.parseExpression(LOWEST)
+		hash.Pairs[key] = value
+		if p.peekToken.Type != token.RBRACE && p.peekToken.Type != token.COMMA {
+			return nil
+		}
+		if p.peekToken.Type == token.COMMA {
+			p.nextToken()
+		}
+	}
+	if p.peekToken.Type != token.RBRACE {
+		return nil
+	}
+	p.nextToken()
+	return hash
 }

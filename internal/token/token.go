@@ -6,11 +6,11 @@ const (
 	ILLEGAL Type = "ILLEGAL"
 	EOF     Type = "EOF"
 
-	FUCK Type = "FUCK"
-	SHIT Type = "SHIT"
-	DAMN Type = "DAMN"
-	ELSE Type = "ELSE"
-	HELL Type = "HELL"
+	FUCK  Type = "FUCK"
+	SHIT  Type = "SHIT"
+	DAMN  Type = "DAMN"
+	ELSE  Type = "ELSE"
+	HELL  Type = "HELL"
 	BITCH Type = "BITCH"
 	ASS   Type = "ASS"
 
@@ -49,6 +49,7 @@ const (
 type Token struct {
 	Type    Type
 	Literal string
+	Line    int // 新增行号追踪
 }
 
 var keywords = map[string]Type{

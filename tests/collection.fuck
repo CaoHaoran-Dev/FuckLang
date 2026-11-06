@@ -1,0 +1,9 @@
+// 数组与字典
+shit arr = [10, 20, 30]
+push(arr, 40)
+fuck len(arr)
+fuck arr[3]
+
+shit user = {"name": "Alice", "role": "admin"}
+fuck user["name"]
+fuck type(user)

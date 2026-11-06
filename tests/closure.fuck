@@ -1,0 +1,8 @@
+// 闭包
+bitch makeAdder(n) {
+    ass bitch(x) {
+        ass x + n
+    }
+}
+shit add5 = makeAdder(5)
+fuck add5(10)

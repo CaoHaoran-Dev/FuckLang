@@ -1,0 +1,11 @@
+// 算术与条件分支
+fuck 1 + 2 * 3
+fuck (1 + 2) * 3
+fuck 10 / 2
+
+shit age = 20
+damn age >= 18 {
+    fuck "adult"
+} else {
+    fuck "minor"
+}

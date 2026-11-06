@@ -1,4 +1,4 @@
-fuck "hello"
+// 变量、赋值、输出
 shit x = 42
 fuck x
 shit y = x + 8

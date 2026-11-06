@@ -1,0 +1,13 @@
+// 循环与函数
+bitch square(n) {
+    ass n * n
+}
+fuck square(5)
+
+shit i = 0
+shit sum = 0
+hell i < 5 {
+    shit sum = sum + i
+    shit i = i + 1
+}
+fuck sum
