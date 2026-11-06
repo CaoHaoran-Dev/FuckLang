@@ -1,0 +1,7 @@
+fuck "hello"
+shit x = 42
+fuck x
+shit y = x + 8
+fuck y
+shit x = 100
+fuck x

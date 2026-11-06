@@ -1,0 +1,26 @@
+shit x = 10
+damn x > 5 {
+    fuck "big"
+} else {
+    fuck "small"
+}
+
+damn x < 5 {
+    fuck "never"
+} else {
+    fuck "else branch"
+}
+
+damn true {
+    fuck "nested"
+    damn x == 10 {
+        fuck "inner"
+    }
+}
+
+shit flag = false
+damn flag {
+    fuck "no"
+} else {
+    fuck "yes"
+}

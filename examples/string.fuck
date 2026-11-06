@@ -1,0 +1,9 @@
+fuck "hello"
+fuck "hello" + " " + "world"
+shit s = "foo"
+shit t = s + "bar"
+fuck t
+fuck "a" == "a"
+fuck "a" == "b"
+fuck "a" != "b"
+fuck "abc" + ""

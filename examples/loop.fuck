@@ -1,0 +1,21 @@
+shit i = 0
+hell i < 3 {
+    fuck i
+    shit i = i + 1
+}
+
+shit sum = 0
+shit j = 1
+hell j <= 5 {
+    shit sum = sum + j
+    shit j = j + 1
+}
+fuck sum
+
+shit k = 0
+hell k < 10 {
+    damn k == 3 {
+        fuck "hit 3"
+    }
+    shit k = k + 1
+}

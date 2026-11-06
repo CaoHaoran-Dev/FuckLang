@@ -1,0 +1,56 @@
+name: FuckLang CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test-and-build:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod tidy
+
+      # 核心单元测试：在 Linux, Mac, Windows 上分别跑一遍你的 evaluator_test.go
+      - name: Run Go Tests
+        run: go test -v ./...
+
+      # 在本机平台编译出二进制，作为产物保存
+      - name: Build Binary (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: go build -o fucklang-linux-amd64 ./cmd/fucklang
+
+      - name: Build Binary (macOS)
+        if: matrix.os == 'macos-latest'
+        run: go build -o fucklang-darwin-arm64 ./cmd/fucklang
+
+      - name: Build Binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: go build -o fucklang-windows-amd64.exe ./cmd/fucklang
+
+      # 上传编译好的二进制文件，方便你每次 push 后直接下载最新版
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FuckLang-Binaries-${{ matrix.os }}
+          path: |
+            fucklang-linux-amd64
+            fucklang-darwin-arm64
+            fucklang-windows-amd64.exe
+          if-no-files-found: ignore
