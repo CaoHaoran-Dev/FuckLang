@@ -1,0 +1,160 @@
+package lexer
+
+import "fucklang/internal/token"
+
+type Lexer struct {
+	input   string
+	pos     int
+	readPos int
+	ch      byte
+}
+
+func New(input string) *Lexer {
+	l := &Lexer{input: input}
+	l.readChar()
+	return l
+}
+
+func (l *Lexer) readChar() {
+	if l.readPos >= len(l.input) {
+		l.ch = 0
+	} else {
+		l.ch = l.input[l.readPos]
+	}
+	l.pos = l.readPos
+	l.readPos++
+}
+
+func (l *Lexer) NextToken() token.Token {
+	var tok token.Token
+	l.skipWhitespace()
+
+	switch l.ch {
+	case '=':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.EQ, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = token.Token{Type: token.ASSIGN, Literal: string(l.ch)}
+		}
+	case '+':
+		tok = token.Token{Type: token.PLUS, Literal: string(l.ch)}
+	case '-':
+		tok = token.Token{Type: token.MINUS, Literal: string(l.ch)}
+	case '*':
+		tok = token.Token{Type: token.STAR, Literal: string(l.ch)}
+	case '/':
+		tok = token.Token{Type: token.SLASH, Literal: string(l.ch)}
+	case '!':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.NOT_EQ, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = token.Token{Type: token.BANG, Literal: string(l.ch)}
+		}
+	case '<':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.LTE, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = token.Token{Type: token.LT, Literal: string(l.ch)}
+		}
+	case '>':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.GTE, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = token.Token{Type: token.GT, Literal: string(l.ch)}
+		}
+	case ',':
+		tok = token.Token{Type: token.COMMA, Literal: string(l.ch)}
+	case ':':
+		tok = token.Token{Type: token.COLON, Literal: string(l.ch)}
+	case ';':
+		tok = token.Token{Type: token.SEMICOLON, Literal: string(l.ch)}
+	case '(':
+		tok = token.Token{Type: token.LPAREN, Literal: string(l.ch)}
+	case ')':
+		tok = token.Token{Type: token.RPAREN, Literal: string(l.ch)}
+	case '{':
+		tok = token.Token{Type: token.LBRACE, Literal: string(l.ch)}
+	case '}':
+		tok = token.Token{Type: token.RBRACE, Literal: string(l.ch)}
+	case '[':
+		tok = token.Token{Type: token.LBRACKET, Literal: string(l.ch)}
+	case ']':
+		tok = token.Token{Type: token.RBRACKET, Literal: string(l.ch)}
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
+	case 0:
+		tok = token.Token{Type: token.EOF, Literal: ""}
+	default:
+		if isLetter(l.ch) {
+			tok.Literal = l.readIdentifier()
+			tok.Type = token.LookupIdent(tok.Literal)
+			return tok
+		} else if isDigit(l.ch) {
+			tok.Type = token.INT
+			tok.Literal = l.readNumber()
+			return tok
+		} else {
+			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch)}
+		}
+	}
+
+	l.readChar()
+	return tok
+}
+
+func (l *Lexer) skipWhitespace() {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+		l.readChar()
+	}
+}
+
+func (l *Lexer) readIdentifier() string {
+	pos := l.pos
+	for isLetter(l.ch) {
+		l.readChar()
+	}
+	return l.input[pos:l.pos]
+}
+
+func (l *Lexer) readNumber() string {
+	pos := l.pos
+	for isDigit(l.ch) {
+		l.readChar()
+	}
+	return l.input[pos:l.pos]
+}
+
+func (l *Lexer) readString() string {
+	pos := l.pos + 1
+	for {
+		l.readChar()
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+	return l.input[pos:l.pos]
+}
+
+func (l *Lexer) peekChar() byte {
+	if l.readPos >= len(l.input) {
+		return 0
+	}
+	return l.input[l.readPos]
+}
+
+func isLetter(ch byte) bool {
+	return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == '_'
+}
+
+func isDigit(ch byte) bool {
+	return ch >= '0' && ch <= '9'
+}
