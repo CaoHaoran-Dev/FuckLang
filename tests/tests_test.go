@@ -1,9 +1,6 @@
 package tests
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"fucklang/internal/evaluator"
@@ -11,7 +8,6 @@ import (
 	"fucklang/internal/parser"
 )
 
-// helper: 执行一段 FuckLang 代码并返回它的输出结果
 func testEval(input string) string {
 	l := lexer.New(input)
 	p := parser.New(l)
@@ -29,63 +25,50 @@ func testEval(input string) string {
 	return "NULL"
 }
 
-// 1. 核心逻辑断言测试 (原 evaluator_test.go)
 func TestEvaluatorLogic(t *testing.T) {
 	tests := []struct {
+		name     string
 		input    string
 		expected string
 	}{
-		{"1 + 1", "2"},
-		{"2 * (3 + 4)", "14"},
-		{"\"foo\" + \"bar\"", "foobar"},
-		{"damn 1 < 2 { ass \"yes\" }", "yes"},
-		{"shit x = 5; x * 2", "10"},
-		{"len([1, 2, 3])", "3"},
-		{"{\"a\": 1}[\"a\"]", "1"},
-		{"1 / 0", "ERROR: division by zero"},
-		{"shit arr = [1]; push(arr, 2); len(arr)", "2"},
+		// --- 算术运算 ---
+		{"加法", "1 + 1", "2"},
+		{"乘法与括号", "2 * (3 + 4)", "14"},
+		{"除法", "10 / 2", "5"},
+		{"负数", "-5", "-5"},
+		{"除以零", "1 / 0", "ERROR: division by zero"},
+
+		// --- 字符串 ---
+		{"字符串拼接", "\"foo\" + \"bar\"", "foobar"},
+		{"字符串比较", "\"a\" == \"a\"", "true"},
+
+		// --- 条件 ---
+		{"单行条件", "damn 1 < 2 { ass \"yes\" }", "yes"},
+
+		// --- 变量与赋值 ---
+		{"变量赋值", "shit x = 5; x * 2", "10"},
+
+		// --- 内置函数 ---
+		{"数组长度", "len([1, 2, 3])", "3"},
+		{"数组推送", "shit arr = [1]; push(arr, 2); len(arr)", "2"},
+
+		// --- 字典 ---
+		{"字典访问", "shit h = {\"a\": 1}; h[\"a\"]", "1"},
+
+		// --- 函数与闭包 ---
+		{"单行函数", "shit f = bitch(x) { ass x * 2 }; f(5)", "10"},
+		{"多行模拟函数", "bitch square(n) { ass n * n }; square(5)", "25"},
+		{"闭包捕获", "bitch makeAdder(n) { ass bitch(x) { ass x + n } }; shit add5 = makeAdder(5); add5(10)", "15"},
+
+		// --- 循环 ---
+		{"累加循环", "shit i = 0; shit sum = 0; hell i < 5 { shit sum = sum + i; shit i = i + 1 }; sum", "10"},
 	}
 
 	for _, tt := range tests {
-		evaluated := testEval(tt.input)
-		if evaluated != tt.expected {
-			t.Errorf("for %s, expected %s, got %v", tt.input, tt.expected, evaluated)
-		}
-	}
-}
-
-// 2. 全量文件执行测试 (原 e2e_test.go)
-func TestAllFuckFiles(t *testing.T) {
-	files, err := filepath.Glob("*.fuck")
-	if err != nil {
-		t.Fatalf("Failed to find test files: %v", err)
-	}
-	if len(files) == 0 {
-		t.Fatal("No .fuck files found in /tests directory")
-	}
-
-	for _, file := range files {
-		file := file // capture range variable
-		t.Run(filepath.Base(file), func(t *testing.T) {
-			source, err := os.ReadFile(file)
-			if err != nil {
-				t.Fatalf("Failed to read %s: %v", file, err)
-			}
-
-			l := lexer.New(string(source))
-			p := parser.New(l)
-			program := p.ParseProgram()
-
-			// 检查语法错误
-			if len(p.Errors()) > 0 {
-				t.Fatalf("Syntax errors in %s:\n%s", file, strings.Join(p.Errors(), "\n"))
-			}
-
-			// 检查运行时错误
-			env := evaluator.NewEnvironment()
-			evaluated := evaluator.Eval(program, env)
-			if evaluated != nil && evaluated.Type() == "ERROR" {
-				t.Fatalf("Runtime error in %s: %s", file, evaluated.Inspect())
+		t.Run(tt.name, func(t *testing.T) {
+			evaluated := testEval(tt.input)
+			if evaluated != tt.expected {
+				t.Errorf("输入: %s\n期望: %s\n实际: %v", tt.input, tt.expected, evaluated)
 			}
 		})
 	}

@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"fucklang/internal/ast"
 	"fucklang/internal/lexer"
 	"fucklang/internal/token"
@@ -91,11 +90,45 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseLoopStatement()
 	case token.ASS:
 		return p.parseReturnStatement()
+	case token.BITCH:
+		// 只有后面紧跟标识符，且再后面是括号，才是具名函数定义
+		if p.peekToken.Type == token.IDENT {
+			return p.parseNamedFunctionStatement()
+		}
+		return p.parseExpressionStatement()
 	case token.LBRACE:
 		return p.parseBlockStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
+}
+
+// 专门处理 bitch name(args) { ... } 的语句
+func (p *Parser) parseNamedFunctionStatement() ast.Statement {
+	bitchToken := p.curToken
+	p.nextToken() // 移到函数名
+
+	name := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	p.nextToken() // 移到 '('
+
+	if p.curToken.Type != token.LPAREN {
+		return nil
+	}
+
+	params := p.parseFunctionParameters()
+	if p.peekToken.Type == token.LBRACE {
+		p.nextToken()
+	}
+	body := p.parseBlockStatement()
+
+	fn := &ast.FunctionLiteral{Token: bitchToken, Parameters: params, Body: body}
+
+	stmt := &ast.AssignStatement{
+		Token: token.Token{Type: token.SHIT, Literal: "shit"},
+		Name:  name,
+		Value: fn,
+	}
+	return stmt
 }
 
 func (p *Parser) parsePrintStatement() *ast.PrintStatement {
@@ -250,6 +283,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		p.nextToken()
 	}
 	expr.Consequence = p.parseBlockStatement()
+
 	if p.peekToken.Type == token.ELSE {
 		p.nextToken()
 		p.nextToken()
@@ -275,23 +309,24 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 }
 
 func (p *Parser) parseFunctionParameters() []*ast.Parameter {
-	var params []*ast.Parameter
+	params := []*ast.Parameter{}
+
 	if p.peekToken.Type == token.RPAREN {
 		p.nextToken()
 		return params
 	}
+
 	p.nextToken()
 	param := &ast.Parameter{Name: &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}}
 	params = append(params, param)
+
 	for p.peekToken.Type == token.COMMA {
 		p.nextToken()
 		p.nextToken()
 		param := &ast.Parameter{Name: &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}}
 		params = append(params, param)
 	}
-	if p.peekToken.Type != token.RPAREN {
-		return nil
-	}
+
 	p.nextToken()
 	return params
 }

@@ -224,25 +224,29 @@ func evalExpressions(exprs []ast.Expression, env *Environment) []object.Object {
 }
 
 func applyFunction(fn object.Object, args []object.Object) object.Object {
-	switch fn := fn.(type) {
-	case *object.Function:
-		outer, _ := fn.Env.(*Environment)
-		extendedEnv := NewEnclosedEnvironment(outer)
-		for i, param := range fn.Parameters {
-			if i < len(args) {
-				extendedEnv.Set(param.Name.Value, args[i])
-			}
+	function, ok := fn.(*object.Function)
+	if !ok {
+		if builtin, ok := fn.(*object.Builtin); ok {
+			return builtin.Fn(args...)
 		}
-		evaluated := Eval(fn.Body, extendedEnv)
-		if rv, ok := evaluated.(*object.ReturnValue); ok {
-			return rv.Value
-		}
-		return evaluated
-	case *object.Builtin:
-		return fn.Fn(args...)
-	default:
 		return newError("not a function: %s", fn.Type())
 	}
+
+	// 强制外层的 outer 正确取到环境
+	outer, _ := function.Env.(*Environment)
+	extendedEnv := NewEnclosedEnvironment(outer)
+	
+	for i, param := range function.Parameters {
+		if i < len(args) {
+			extendedEnv.Set(param.Name.Value, args[i])
+		}
+	}
+
+	evaluated := Eval(function.Body, extendedEnv)
+	if rv, ok := evaluated.(*object.ReturnValue); ok {
+		return rv.Value
+	}
+	return evaluated
 }
 
 func evalIndexExpression(left, index object.Object) object.Object {

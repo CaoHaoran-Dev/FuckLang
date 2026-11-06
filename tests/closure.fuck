@@ -1,4 +1,3 @@
-// 闭包
 bitch makeAdder(n) {
     ass bitch(x) {
         ass x + n

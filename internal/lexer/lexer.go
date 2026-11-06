@@ -7,11 +7,10 @@ type Lexer struct {
 	pos     int
 	readPos int
 	ch      byte
-	line    int
 }
 
 func New(input string) *Lexer {
-	l := &Lexer{input: input, line: 1}
+	l := &Lexer{input: input}
 	l.readChar()
 	return l
 }
@@ -30,86 +29,82 @@ func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 	l.skipWhitespace()
 
-	line := l.line
-
 	switch l.ch {
 	case '=':
 		if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.EQ, Literal: string(ch) + string(l.ch), Line: line}
+			tok = token.Token{Type: token.EQ, Literal: string(ch) + string(l.ch)}
 		} else {
-			tok = token.Token{Type: token.ASSIGN, Literal: string(l.ch), Line: line}
+			tok = token.Token{Type: token.ASSIGN, Literal: string(l.ch)}
 		}
 	case '+':
-		tok = token.Token{Type: token.PLUS, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.PLUS, Literal: string(l.ch)}
 	case '-':
-		tok = token.Token{Type: token.MINUS, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.MINUS, Literal: string(l.ch)}
 	case '*':
-		tok = token.Token{Type: token.STAR, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.STAR, Literal: string(l.ch)}
 	case '/':
-		tok = token.Token{Type: token.SLASH, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.SLASH, Literal: string(l.ch)}
 	case '!':
 		if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.NOT_EQ, Literal: string(ch) + string(l.ch), Line: line}
+			tok = token.Token{Type: token.NOT_EQ, Literal: string(ch) + string(l.ch)}
 		} else {
-			tok = token.Token{Type: token.BANG, Literal: string(l.ch), Line: line}
+			tok = token.Token{Type: token.BANG, Literal: string(l.ch)}
 		}
 	case '<':
 		if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.LTE, Literal: string(ch) + string(l.ch), Line: line}
+			tok = token.Token{Type: token.LTE, Literal: string(ch) + string(l.ch)}
 		} else {
-			tok = token.Token{Type: token.LT, Literal: string(l.ch), Line: line}
+			tok = token.Token{Type: token.LT, Literal: string(l.ch)}
 		}
 	case '>':
 		if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.GTE, Literal: string(ch) + string(l.ch), Line: line}
+			tok = token.Token{Type: token.GTE, Literal: string(ch) + string(l.ch)}
 		} else {
-			tok = token.Token{Type: token.GT, Literal: string(l.ch), Line: line}
+			tok = token.Token{Type: token.GT, Literal: string(l.ch)}
 		}
 	case ',':
-		tok = token.Token{Type: token.COMMA, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.COMMA, Literal: string(l.ch)}
 	case ':':
-		tok = token.Token{Type: token.COLON, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.COLON, Literal: string(l.ch)}
 	case ';':
-		tok = token.Token{Type: token.SEMICOLON, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.SEMICOLON, Literal: string(l.ch)}
 	case '(':
-		tok = token.Token{Type: token.LPAREN, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.LPAREN, Literal: string(l.ch)}
 	case ')':
-		tok = token.Token{Type: token.RPAREN, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.RPAREN, Literal: string(l.ch)}
 	case '{':
-		tok = token.Token{Type: token.LBRACE, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.LBRACE, Literal: string(l.ch)}
 	case '}':
-		tok = token.Token{Type: token.RBRACE, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.RBRACE, Literal: string(l.ch)}
 	case '[':
-		tok = token.Token{Type: token.LBRACKET, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.LBRACKET, Literal: string(l.ch)}
 	case ']':
-		tok = token.Token{Type: token.RBRACKET, Literal: string(l.ch), Line: line}
+		tok = token.Token{Type: token.RBRACKET, Literal: string(l.ch)}
 	case '"':
 		tok.Type = token.STRING
 		tok.Literal = l.readString()
-		tok.Line = line
 	case 0:
-		tok = token.Token{Type: token.EOF, Literal: "", Line: line}
+		tok = token.Token{Type: token.EOF, Literal: ""}
 	default:
+		// 这里只有字母或下划线开头的才会进入标识符分支
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
-			tok.Line = line
 			return tok
 		} else if isDigit(l.ch) {
 			tok.Type = token.INT
 			tok.Literal = l.readNumber()
-			tok.Line = line
 			return tok
 		} else {
-			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch), Line: line}
+			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch)}
 		}
 	}
 
@@ -119,16 +114,14 @@ func (l *Lexer) NextToken() token.Token {
 
 func (l *Lexer) skipWhitespace() {
 	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
-		if l.ch == '\n' {
-			l.line++
-		}
 		l.readChar()
 	}
 }
 
+// 修复：readIdentifier 中允许数字，但标识符开头依然是字母（由 isLetter 保证）
 func (l *Lexer) readIdentifier() string {
 	pos := l.pos
-	for isLetter(l.ch) {
+	for isLetter(l.ch) || isDigit(l.ch) {
 		l.readChar()
 	}
 	return l.input[pos:l.pos]
@@ -160,6 +153,7 @@ func (l *Lexer) peekChar() byte {
 	return l.input[l.readPos]
 }
 
+// 恢复 isLetter 原样，只认字母和下划线
 func isLetter(ch byte) bool {
 	return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == '_'
 }
