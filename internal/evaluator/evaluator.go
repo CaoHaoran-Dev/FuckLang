@@ -44,12 +44,10 @@ func (e *Environment) Set(name string, val object.Object) object.Object {
 	return val
 }
 
-// newError 构造无行号的运行时错误（用于拿不到 AST 节点行号的地方）
 func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
-// newErrorAt 构造带行号的运行时错误
 func newErrorAt(line int, format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...), Line: line}
 }
@@ -164,12 +162,19 @@ func evalProgram(program *ast.Program, env *Environment) object.Object {
 	var result object.Object = NULL
 	for _, stmt := range program.Statements {
 		result = Eval(stmt, env)
-		switch result := result.(type) {
-		case *object.ReturnValue:
-			return result.Value
-		case *object.Error:
+		
+		// 遇到 return 提前结束
+		if rv, ok := result.(*object.ReturnValue); ok {
+			return rv.Value
+		}
+		
+		// 遇到 Error 提前结束
+		if result != nil && result.Type() == object.ERROR {
 			return result
-		case *object.BreakValue:
+		}
+
+		// 顶层出现 break 报错
+		if result != nil && result.Type() == object.BREAK {
 			return newError("`break` outside of loop")
 		}
 	}
@@ -243,7 +248,6 @@ func applyFunction(line int, fn object.Object, args []object.Object) object.Obje
 	if !ok {
 		if builtin, ok := fn.(*object.Builtin); ok {
 			result := builtin.Fn(args...)
-			// 内置函数返回的 Error 若没有行号，补上调用点行号
 			if errObj, ok := result.(*object.Error); ok && errObj.Line == 0 {
 				errObj.Line = line
 			}
@@ -270,9 +274,12 @@ func applyFunction(line int, fn object.Object, args []object.Object) object.Obje
 	if rv, ok := evaluated.(*object.ReturnValue); ok {
 		return rv.Value
 	}
+
+	// 只要函数体里冒出 break，当场拦下并报错
 	if evaluated != nil && evaluated.Type() == object.BREAK {
 		return newErrorAt(line, "`break` cannot cross function boundary")
 	}
+
 	return evaluated
 }
 

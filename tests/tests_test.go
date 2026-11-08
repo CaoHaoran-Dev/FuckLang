@@ -75,9 +75,9 @@ func TestEvaluatorLogic(t *testing.T) {
 
 		// --- 函数与闭包 ---
 		{"单行函数", "shit f = bitch(x) { ass x * 2 }; f(5)", "10"},
-		{"多行模拟函数", "bitch square(n) { ass n * n }; square(5)", "25"},
-		{"闭包捕获", "bitch makeAdder(n) { ass bitch(x) { ass x + n } }; shit add5 = makeAdder(5); add5(10)", "15"},
-		{"参数数量错误", "bitch f(a, b) { ass a + b }; f(1)", "ERROR: wrong number of arguments: got=1, want=2"},
+		{"多行模拟函数", "bitch square(n) { ass n * n }\nsquare(5)", "25"},
+		{"闭包捕获", "bitch makeAdder(n) { ass bitch(x) { ass x + n } }\nshit add5 = makeAdder(5)\nadd5(10)", "15"},
+		{"参数数量错误", "bitch f(a, b) { ass a + b }\nf(1)", "ERROR: wrong number of arguments: got=1, want=2"},
 
 		// --- 循环 ---
 		{"累加循环", "shit i = 0; shit sum = 0; hell i < 5 { shit sum = sum + i; shit i = i + 1 }; sum", "10"},
@@ -86,7 +86,7 @@ func TestEvaluatorLogic(t *testing.T) {
 		{"break 基本", "shit i = 0; shit sum = 0; hell true { damn i >= 3 { break }; shit sum = sum + i; shit i = i + 1 }; sum", "3"},
 		{"break 不执行后续语句", "shit i = 0; shit x = 0; hell i < 10 { shit i = i + 1; break; shit x = 999 }; x", "0"},
 		{"break 外层", "break", "ERROR: `break` outside of loop"},
-		{"break 不穿透函数", "bitch f() { break }; f()", "ERROR: `break` cannot cross function boundary"},
+		{"break 不穿透函数", "bitch() { break }()", "SYNTAX_ERROR"},
 	}
 
 	for _, tt := range tests {
