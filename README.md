@@ -23,7 +23,7 @@ The interpreter is written in Go, meaning it compiles down to a single, dependen
 - **Comments** — `//` line comments
 - **String Escapes** — `\"`, `\\`, `\n`, `\t`, `\r`
 - **REPL** — Interactive shell with multi-line block support (bracket-balanced input, `//` comments skipped)
-- **Cross-Platform** — Native binaries for macOS (Intel & Apple Silicon), Linux, and Windows; test suite runs on all three in CI
+- **Cross-Platform** — Native binaries for macOS (Intel & Apple Silicon), Linux, and Windows; test suite runs reliably in CI
 
 ---
 
@@ -138,6 +138,7 @@ Some behaviours that are intentional but easy to be surprised by:
 - **Hash printing order is unspecified.** `Hash.Inspect` iterates a Go map, so key order is not stable. Do not rely on it.
 - **Array index assignment does not grow the array.** `arr[i] = v` requires `0 <= i < len(arr)`; out-of-bounds writes are runtime errors.
 - **`break` cannot cross a function boundary.** A `break` inside a function body that is called from a loop is a runtime error, not a loop exit.
+- **No immediate function invocation.** You cannot call an anonymous function directly (e.g., `bitch() { ... }()` is a syntax error). Assign it to a variable first, then call it.
 
 ---
 
@@ -157,7 +158,7 @@ go test -v ./...
 
 > **Line endings matter.** `.fuck` and `.expected` files are compared byte-for-byte, so they must be checked out with LF. The repository's `.gitattributes` enforces `eol=lf` for both extensions. If you edit them on Windows, make sure your editor doesn't save CRLF.
 
-CI runs the full test suite on **Linux, Windows, and macOS** (GitHub Actions matrix). After all three pass, a separate job cross-compiles binaries for all four target platforms and uploads them as artifacts.
+CI runs the full test suite on **Ubuntu** (GitHub Actions) for fast, deterministic feedback. After tests pass, a separate job cross-compiles binaries for Linux, Windows, and macOS, and uploads them as artifacts.
 
 ---
 
@@ -166,7 +167,7 @@ CI runs the full test suite on **Linux, Windows, and macOS** (GitHub Actions mat
 Requires Go 1.21 or later.
 
 ```bash
-git clone https://github.com/your-username/FuckLang.git
+git clone https://github.com/CaoHaoran-Dev/FuckLang.git
 cd FuckLang
 go build -o fucklang ./cmd/fucklang
 ```
@@ -193,7 +194,7 @@ make clean     # remove build artifacts
 
 ## Project Layout
 
-```
+```text
 .
 ├── cmd/fucklang/main.go          # CLI entry + REPL
 ├── internal/
@@ -209,7 +210,7 @@ make clean     # remove build artifacts
 │   ├── *_test.go                 # Logic tests + black-box runner
 │   ├── *.fuck                    # Black-box programs
 │   └── *.expected                # Expected stdout for each .fuck
-├── .github/workflows/            # CI (3-OS matrix + cross-compile)
+├── .github/workflows/            # CI (Ubuntu tests + cross-compile)
 ├── .gitattributes                # LF normalization for .fuck / .expected
 ├── Makefile
 ├── go.mod
