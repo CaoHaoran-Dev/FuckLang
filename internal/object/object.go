@@ -22,6 +22,7 @@ const (
 	BUILTIN      Type = "BUILTIN"
 	ARRAY        Type = "ARRAY"
 	HASH         Type = "HASH"
+	BREAK        Type = "BREAK"
 )
 
 type Object interface {
@@ -30,48 +31,70 @@ type Object interface {
 }
 
 type Integer struct{ Value int64 }
+
 func (i *Integer) Type() Type      { return INTEGER }
 func (i *Integer) Inspect() string { return strconv.FormatInt(i.Value, 10) }
 
 type String struct{ Value string }
+
 func (s *String) Type() Type      { return STRING }
 func (s *String) Inspect() string { return s.Value }
 
 type Boolean struct{ Value bool }
+
 func (b *Boolean) Type() Type      { return BOOLEAN }
 func (b *Boolean) Inspect() string { return strconv.FormatBool(b.Value) }
 
 type Null struct{}
+
 func (n *Null) Type() Type      { return NULL }
 func (n *Null) Inspect() string { return "null" }
 
 type ReturnValue struct{ Value Object }
+
 func (rv *ReturnValue) Type() Type      { return RETURN_VALUE }
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
 
-type Error struct{ Message string }
+// BreakValue 在循环体内传播 break 信号
+type BreakValue struct{}
+
+func (bv *BreakValue) Type() Type      { return BREAK }
+func (bv *BreakValue) Inspect() string { return "break" }
+
+type Error struct {
+	Message string
+	Line    int
+}
+
 func (e *Error) Type() Type      { return ERROR }
 func (e *Error) Inspect() string { return "ERROR: " + e.Message }
+
+type Env interface{}
 
 type Function struct {
 	Parameters []*ast.Parameter
 	Body       *ast.BlockStatement
-	Env        interface{}
+	Env        Env
 }
+
 func (f *Function) Type() Type      { return FUNCTION }
 func (f *Function) Inspect() string { return "bitch(...) {...}" }
 
 type BuiltinFunction func(args ...Object) Object
 
 type Builtin struct{ Fn BuiltinFunction }
+
 func (b *Builtin) Type() Type      { return BUILTIN }
 func (b *Builtin) Inspect() string { return "builtin function" }
 
 type Array struct{ Elements []Object }
+
 func (a *Array) Type() Type { return ARRAY }
 func (a *Array) Inspect() string {
 	var parts []string
-	for _, e := range a.Elements { parts = append(parts, e.Inspect()) }
+	for _, e := range a.Elements {
+		parts = append(parts, e.Inspect())
+	}
 	return "[" + strings.Join(parts, ", ") + "]"
 }
 
@@ -82,7 +105,11 @@ type HashKey struct {
 
 func (b *Boolean) HashKey() HashKey {
 	var value uint64
-	if b.Value { value = 1 } else { value = 0 }
+	if b.Value {
+		value = 1
+	} else {
+		value = 0
+	}
 	return HashKey{Type: b.Type(), Value: value}
 }
 
@@ -102,6 +129,7 @@ type HashPair struct {
 }
 
 type Hash struct{ Pairs map[HashKey]HashPair }
+
 func (h *Hash) Type() Type { return HASH }
 func (h *Hash) Inspect() string {
 	var pairs []string

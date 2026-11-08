@@ -11,6 +11,7 @@ const (
 	DAMN  Type = "DAMN"
 	ELSE  Type = "ELSE"
 	HELL  Type = "HELL"
+	BREAK Type = "BREAK"
 	BITCH Type = "BITCH"
 	ASS   Type = "ASS"
 
@@ -49,7 +50,7 @@ const (
 type Token struct {
 	Type    Type
 	Literal string
-	Line    int // 新增行号追踪
+	Line    int
 }
 
 var keywords = map[string]Type{
@@ -58,6 +59,7 @@ var keywords = map[string]Type{
 	"damn":  DAMN,
 	"else":  ELSE,
 	"hell":  HELL,
+	"break": BREAK,
 	"bitch": BITCH,
 	"ass":   ASS,
 	"true":  TRUE,

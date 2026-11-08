@@ -1,0 +1,11 @@
+// break 跳出循环
+shit i = 0
+shit sum = 0
+hell true {
+    damn i >= 5 {
+        break
+    }
+    shit sum = sum + i
+    shit i = i + 1
+}
+fuck sum

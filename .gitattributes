@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# 语言测试文件必须保持 LF，输出对比是字节级
+*.expected text eol=lf
+*.fuck     text eol=lf

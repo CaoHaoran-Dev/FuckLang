@@ -7,56 +7,64 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  build-and-test:
-    name: Build & Test
-    runs-on: ubuntu-latest
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      # 1. 拉取代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. 安装 Go 环境
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
           cache: true
 
-      # 3. 下载依赖
       - name: Download dependencies
         run: go mod tidy
 
-      # 4. 跑单元测试与黑盒测试
       - name: Run Go Tests
         run: go test -v ./...
 
-      # 5. 编译全平台二进制
+  build:
+    name: Cross-compile Binaries
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod tidy
+
       - name: Cross-compile Binaries
         run: |
           mkdir -p build
-          # Linux
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o build/fucklang-linux-amd64 ./cmd/fucklang
-          # Windows
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o build/fucklang-windows-amd64.exe ./cmd/fucklang
-          # macOS (Apple Silicon)
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o build/fucklang-darwin-arm64 ./cmd/fucklang
-          # macOS (Intel)
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o build/fucklang-darwin-amd64 ./cmd/fucklang
+          CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o build/fucklang-linux-amd64        ./cmd/fucklang
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o build/fucklang-windows-amd64.exe  ./cmd/fucklang
+          CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -ldflags="-s -w" -o build/fucklang-darwin-arm64       ./cmd/fucklang
+          CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -ldflags="-s -w" -o build/fucklang-darwin-amd64       ./cmd/fucklang
 
-      # 6. 打包源码
       - name: Package Source Code
         run: |
-          mkdir -p build
-          # 把源码打包成 tar.gz 和 zip 两种常见格式
           tar -czvf build/fucklang-source.tar.gz --exclude='.git' --exclude='build' .
           zip -r build/fucklang-source.zip . -x ".git/*" "build/*"
 
-      # 7. 上传所有产物（二进制 + 源码）
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FuckLang-Builds
           path: build/
-          retention-days: 7 # 产物保留 7 天，可根据需要修改
+          retention-days: 7
           if-no-files-found: error
