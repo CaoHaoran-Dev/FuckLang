@@ -23,6 +23,7 @@ The interpreter is written in Go, meaning it compiles down to a single, dependen
 - **Comments** — `//` line comments
 - **String Escapes** — `\"`, `\\`, `\n`, `\t`, `\r`
 - **REPL** — Interactive shell with multi-line block support (bracket-balanced input, `//` comments skipped)
+- **Multi-Architecture** — Pre-compiled binaries for x86_64, ARM64 (Linux/macOS/Windows), and RISC-V (Linux)
 - **Cross-Platform** — Native binaries for macOS (Intel & Apple Silicon), Linux, and Windows; test suite runs reliably in CI
 
 ---
@@ -158,7 +159,7 @@ go test -v ./...
 
 > **Line endings matter.** `.fuck` and `.expected` files are compared byte-for-byte, so they must be checked out with LF. The repository's `.gitattributes` enforces `eol=lf` for both extensions. If you edit them on Windows, make sure your editor doesn't save CRLF.
 
-CI runs the full test suite on **Ubuntu** (GitHub Actions) for fast, deterministic feedback. After tests pass, a separate job cross-compiles binaries for Linux, Windows, and macOS, and uploads them as artifacts.
+CI runs the full test suite on **Ubuntu** (GitHub Actions) for fast, deterministic feedback. After tests pass, a separate job cross-compiles binaries for Linux (x86/ARM/RISC-V), Windows (x86/ARM), and macOS (Intel/Apple Silicon), and uploads them as artifacts.
 
 ---
 
@@ -172,13 +173,21 @@ cd FuckLang
 go build -o fucklang ./cmd/fucklang
 ```
 
-To cross-compile the binaries:
+To cross-compile the binaries for all supported architectures:
 
 ```bash
-GOOS=linux   GOARCH=amd64 go build -o fucklang-linux        ./cmd/fucklang
-GOOS=windows GOARCH=amd64 go build -o fucklang.exe          ./cmd/fucklang
-GOOS=darwin  GOARCH=arm64 go build -o fucklang-mac-arm64    ./cmd/fucklang
-GOOS=darwin  GOARCH=amd64 go build -o fucklang-mac-amd64    ./cmd/fucklang
+# Linux
+GOOS=linux   GOARCH=amd64   go build -o fucklang-linux-amd64      ./cmd/fucklang
+GOOS=linux   GOARCH=arm64   go build -o fucklang-linux-arm64      ./cmd/fucklang
+GOOS=linux   GOARCH=riscv64 go build -o fucklang-linux-riscv64    ./cmd/fucklang
+
+# Windows
+GOOS=windows GOARCH=amd64   go build -o fucklang-windows-amd64.exe ./cmd/fucklang
+GOOS=windows GOARCH=arm64   go build -o fucklang-windows-arm64.exe ./cmd/fucklang
+
+# macOS
+GOOS=darwin  GOARCH=amd64   go build -o fucklang-mac-amd64        ./cmd/fucklang
+GOOS=darwin  GOARCH=arm64   go build -o fucklang-mac-arm64        ./cmd/fucklang
 ```
 
 Or use the Makefile:
