@@ -23,10 +23,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-          cache: true
-
-      - name: Download dependencies
-        run: go mod tidy
 
       - name: Run Go Tests
         run: go test -v ./...
@@ -43,10 +39,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-          cache: true
-
-      - name: Download dependencies
-        run: go mod tidy
 
       - name: Cross-compile Binaries
         run: |
