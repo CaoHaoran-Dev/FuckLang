@@ -2,6 +2,9 @@ package evaluator
 
 import (
 	"fmt"
+	"io"
+	"sort"
+
 	"fucklang/internal/ast"
 	"fucklang/internal/object"
 )
@@ -22,6 +25,10 @@ func NewEnvironment() *Environment {
 	for name, fn := range builtins {
 		env.Set(name, fn)
 	}
+	// 命名空间 hash
+	env.Set("str", namespaceHash(strBuiltins))
+	env.Set("arr", namespaceHash(arrBuiltins))
+	env.Set("file", namespaceHash(fileBuiltins))
 	return env
 }
 
@@ -44,6 +51,23 @@ func (e *Environment) Set(name string, val object.Object) object.Object {
 	return val
 }
 
+// Dump 打印环境变量（供 REPL :env 使用）
+func (e *Environment) Dump(w io.Writer) {
+	names := make([]string, 0, len(e.store))
+	for n := range e.store {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	for _, n := range names {
+		v := e.store[n]
+		if v == nil {
+			fmt.Fprintf(w, "%s = <nil>\n", n)
+			continue
+		}
+		fmt.Fprintf(w, "%s = %s\n", n, v.Inspect())
+	}
+}
+
 func newError(format string, a ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
@@ -57,6 +81,15 @@ func isError(obj object.Object) bool {
 		return obj.Type() == object.ERROR
 	}
 	return false
+}
+
+func namespaceHash(m map[string]*object.Builtin) *object.Hash {
+	pairs := make(map[object.HashKey]object.HashPair, len(m))
+	for name, fn := range m {
+		key := &object.String{Value: name}
+		pairs[key.HashKey()] = object.HashPair{Key: key, Value: fn}
+	}
+	return &object.Hash{Pairs: pairs}
 }
 
 func Eval(node ast.Node, env *Environment) object.Object {
@@ -83,6 +116,8 @@ func Eval(node ast.Node, env *Environment) object.Object {
 		}
 		env.Set(node.Name.Value, val)
 		return val
+	case *ast.CompoundAssignStatement:
+		return evalCompoundAssign(node, env)
 	case *ast.IndexAssignStatement:
 		return evalIndexAssign(node, env)
 	case *ast.ReturnStatement:
@@ -93,8 +128,14 @@ func Eval(node ast.Node, env *Environment) object.Object {
 		return &object.ReturnValue{Value: val}
 	case *ast.BreakStatement:
 		return &object.BreakValue{}
+	case *ast.ContinueStatement:
+		return &object.ContinueValue{}
+	case *ast.AssertStatement:
+		return evalAssert(node, env)
 	case *ast.LoopStatement:
 		return evalLoop(node, env)
+	case *ast.ForStatement:
+		return evalFor(node, env)
 	case *ast.IfExpression:
 		return evalIfExpression(node, env)
 	case *ast.IntegerLiteral:
@@ -152,30 +193,104 @@ func Eval(node ast.Node, env *Environment) object.Object {
 			return index
 		}
 		return evalIndexExpression(node.Token.Line, left, index)
+	case *ast.MemberExpression:
+		return evalMemberExpression(node, env)
 	case *ast.HashLiteral:
 		return evalHashLiteral(node, env)
 	}
 	return nil
 }
 
+func evalAssert(node *ast.AssertStatement, env *Environment) object.Object {
+	cond := Eval(node.Condition, env)
+	if isError(cond) {
+		return cond
+	}
+	if !isTruthy(cond) {
+		msg := "assertion failed"
+		if node.Message != nil {
+			m := Eval(node.Message, env)
+			if isError(m) {
+				return m
+			}
+			msg = m.Inspect()
+		}
+		return newErrorAt(node.Token.Line, "wtf: %s", msg)
+	}
+	return NULL
+}
+
+func evalCompoundAssign(node *ast.CompoundAssignStatement, env *Environment) object.Object {
+	cur, ok := env.Get(node.Name.Value)
+	if !ok {
+		return newErrorAt(node.Token.Line, "identifier not found: %s", node.Name.Value)
+	}
+	val := Eval(node.Value, env)
+	if isError(val) {
+		return val
+	}
+	res := evalInfixExpression(node.Token.Line, node.Operator, cur, val)
+	if isError(res) {
+		return res
+	}
+	env.Set(node.Name.Value, res)
+	return res
+}
+
+func evalFor(node *ast.ForStatement, env *Environment) object.Object {
+	if node.Init != nil {
+		res := Eval(node.Init, env)
+		if isError(res) {
+			return res
+		}
+	}
+	for {
+		cond := Eval(node.Cond, env)
+		if isError(cond) {
+			return cond
+		}
+		if !isTruthy(cond) {
+			break
+		}
+		result := Eval(node.Body, env)
+		if result != nil {
+			t := result.Type()
+			if t == object.RETURN_VALUE || t == object.ERROR {
+				return result
+			}
+			if t == object.BREAK {
+				return NULL
+			}
+		}
+		if node.Post != nil {
+			res := Eval(node.Post, env)
+			if isError(res) {
+				return res
+			}
+			if rv, ok := res.(*object.ReturnValue); ok {
+				return rv
+			}
+		}
+	}
+	return NULL
+}
+
 func evalProgram(program *ast.Program, env *Environment) object.Object {
 	var result object.Object = NULL
 	for _, stmt := range program.Statements {
 		result = Eval(stmt, env)
-		
-		// 遇到 return 提前结束
+
 		if rv, ok := result.(*object.ReturnValue); ok {
 			return rv.Value
 		}
-		
-		// 遇到 Error 提前结束
 		if result != nil && result.Type() == object.ERROR {
 			return result
 		}
-
-		// 顶层出现 break 报错
 		if result != nil && result.Type() == object.BREAK {
 			return newError("`break` outside of loop")
+		}
+		if result != nil && result.Type() == object.CONTINUE {
+			return newError("`fk` outside of loop")
 		}
 	}
 	return result
@@ -187,7 +302,8 @@ func evalBlock(block *ast.BlockStatement, env *Environment) object.Object {
 		result = Eval(stmt, env)
 		if result != nil {
 			t := result.Type()
-			if t == object.RETURN_VALUE || t == object.ERROR || t == object.BREAK {
+			if t == object.RETURN_VALUE || t == object.ERROR ||
+				t == object.BREAK || t == object.CONTINUE {
 				return result
 			}
 		}
@@ -275,12 +391,30 @@ func applyFunction(line int, fn object.Object, args []object.Object) object.Obje
 		return rv.Value
 	}
 
-	// 只要函数体里冒出 break，当场拦下并报错
 	if evaluated != nil && evaluated.Type() == object.BREAK {
 		return newErrorAt(line, "`break` cannot cross function boundary")
 	}
+	if evaluated != nil && evaluated.Type() == object.CONTINUE {
+		return newErrorAt(line, "`fk` cannot cross function boundary")
+	}
 
 	return evaluated
+}
+
+func evalMemberExpression(node *ast.MemberExpression, env *Environment) object.Object {
+	obj := Eval(node.Object, env)
+	if isError(obj) {
+		return obj
+	}
+	if h, ok := obj.(*object.Hash); ok {
+		key := &object.String{Value: node.Member.Value}
+		pair, ok := h.Pairs[key.HashKey()]
+		if !ok {
+			return newErrorAt(node.Token.Line, "member not found: %s", node.Member.Value)
+		}
+		return pair.Value
+	}
+	return newErrorAt(node.Token.Line, "member access not supported on %s", obj.Type())
 }
 
 func evalIndexExpression(line int, left, index object.Object) object.Object {

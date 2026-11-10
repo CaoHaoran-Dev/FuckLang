@@ -27,6 +27,8 @@ func (p *Program) TokenLiteral() string {
 	return ""
 }
 
+// ---------------- 语句节点 ----------------
+
 type PrintStatement struct {
 	Token token.Token
 	Value Expression
@@ -62,13 +64,38 @@ type ReturnStatement struct {
 func (rs *ReturnStatement) statementNode()       {}
 func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
 
-// BreakStatement 跳出最近的 hell 循环
 type BreakStatement struct {
 	Token token.Token
 }
 
 func (bs *BreakStatement) statementNode()       {}
 func (bs *BreakStatement) TokenLiteral() string { return bs.Token.Literal }
+
+type ContinueStatement struct {
+	Token token.Token
+}
+
+func (cs *ContinueStatement) statementNode()       {}
+func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+
+type AssertStatement struct {
+	Token     token.Token
+	Condition Expression
+	Message   Expression
+}
+
+func (as *AssertStatement) statementNode()       {}
+func (as *AssertStatement) TokenLiteral() string { return as.Token.Literal }
+
+type CompoundAssignStatement struct {
+	Token    token.Token
+	Name     *Identifier
+	Operator string
+	Value    Expression
+}
+
+func (cs *CompoundAssignStatement) statementNode()       {}
+func (cs *CompoundAssignStatement) TokenLiteral() string { return cs.Token.Literal }
 
 type LoopStatement struct {
 	Token     token.Token
@@ -78,6 +105,17 @@ type LoopStatement struct {
 
 func (ls *LoopStatement) statementNode()       {}
 func (ls *LoopStatement) TokenLiteral() string { return ls.Token.Literal }
+
+type ForStatement struct {
+	Token token.Token
+	Init  Statement
+	Cond  Expression
+	Post  Statement
+	Body  *BlockStatement
+}
+
+func (fs *ForStatement) statementNode()       {}
+func (fs *ForStatement) TokenLiteral() string { return fs.Token.Literal }
 
 type ExpressionStatement struct {
 	Token      token.Token
@@ -94,6 +132,8 @@ type BlockStatement struct {
 
 func (bs *BlockStatement) statementNode()       {}
 func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
+
+// ---------------- 表达式节点 ----------------
 
 type Identifier struct {
 	Token token.Token
@@ -194,6 +234,16 @@ type IndexExpression struct {
 
 func (ie *IndexExpression) expressionNode()      {}
 func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
+
+// MemberExpression 成员访问 obj.field
+type MemberExpression struct {
+	Token  token.Token
+	Object Expression
+	Member *Identifier
+}
+
+func (me *MemberExpression) expressionNode()      {}
+func (me *MemberExpression) TokenLiteral() string { return me.Token.Literal }
 
 type HashLiteral struct {
 	Token token.Token

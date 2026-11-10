@@ -15,6 +15,17 @@ const (
 	BITCH Type = "BITCH"
 	ASS   Type = "ASS"
 
+	WTF        Type = "WTF"
+	FK         Type = "FK"
+	ORGY       Type = "ORGY"
+	BULLSHIT   Type = "BULLSHIT"
+	NOBULLSHIT Type = "NOBULLSHIT"
+
+	// 命名空间关键字
+	STR  Type = "STR"
+	ARR  Type = "ARR"
+	FILE Type = "FILE"
+
 	IDENT  Type = "IDENT"
 	INT    Type = "INT"
 	STRING Type = "STRING"
@@ -32,9 +43,15 @@ const (
 	LTE    Type = "<="
 	GTE    Type = ">="
 
+	PLUS_ASSIGN  Type = "+="
+	MINUS_ASSIGN Type = "-="
+	STAR_ASSIGN  Type = "*="
+	SLASH_ASSIGN Type = "/="
+
 	COMMA     Type = ","
 	SEMICOLON Type = ";"
 	COLON     Type = ":"
+	DOT       Type = "."
 
 	LPAREN   Type = "("
 	RPAREN   Type = ")"
@@ -64,6 +81,16 @@ var keywords = map[string]Type{
 	"ass":   ASS,
 	"true":  TRUE,
 	"false": FALSE,
+
+	"wtf":        WTF,
+	"fk":         FK,
+	"orgy":       ORGY,
+	"bullshit":   BULLSHIT,
+	"nobullshit": NOBULLSHIT,
+
+	"str":  STR,
+	"arr":  ARR,
+	"file": FILE,
 }
 
 func LookupIdent(ident string) Type {

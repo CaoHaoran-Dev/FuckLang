@@ -1,0 +1,14 @@
+// advanced.fuck: 演示 wtf / fk / orgy / 复合赋值 / bullshit
+shit total = 0
+orgy shit i = 1; i <= 5; i += 1 {
+    damn i == 3 { fk }
+    shit total += i
+}
+fuck total
+
+wtf total == 12, "total 应该等于 12"
+
+shit flag = bullshit
+damn flag {
+    fuck "flag is true"
+}

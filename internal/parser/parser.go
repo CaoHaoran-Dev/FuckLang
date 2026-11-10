@@ -2,10 +2,11 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
+
 	"fucklang/internal/ast"
 	"fucklang/internal/lexer"
 	"fucklang/internal/token"
-	"strconv"
 )
 
 const (
@@ -32,6 +33,7 @@ var precedences = map[token.Type]int{
 	token.SLASH:    PRODUCT,
 	token.LPAREN:   CALL,
 	token.LBRACKET: INDEX,
+	token.DOT:      INDEX,
 }
 
 type Parser struct {
@@ -98,8 +100,14 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseAssignStatement()
 	case token.HELL:
 		return p.parseLoopStatement()
+	case token.ORGY:
+		return p.parseForStatement()
 	case token.BREAK:
 		return p.parseBreakStatement()
+	case token.FK:
+		return p.parseContinueStatement()
+	case token.WTF:
+		return p.parseAssertStatement()
 	case token.ASS:
 		return p.parseReturnStatement()
 	case token.BITCH:
@@ -117,6 +125,77 @@ func (p *Parser) parseStatement() ast.Statement {
 	default:
 		return p.parseExpressionOrAssignStatement()
 	}
+}
+
+func (p *Parser) parseContinueStatement() ast.Statement {
+	return &ast.ContinueStatement{Token: p.curToken}
+}
+
+func (p *Parser) parseAssertStatement() ast.Statement {
+	stmt := &ast.AssertStatement{Token: p.curToken}
+	p.nextToken()
+	cond := p.parseExpression(LOWEST)
+	if cond == nil {
+		p.addError(stmt.Token.Line, "expected expression after `wtf`")
+		return nil
+	}
+	stmt.Condition = cond
+	if p.peekToken.Type == token.COMMA {
+		p.nextToken()
+		p.nextToken()
+		msg := p.parseExpression(LOWEST)
+		if msg == nil {
+			p.addError(stmt.Token.Line, "expected message expression after `,`")
+			return nil
+		}
+		stmt.Message = msg
+	}
+	return stmt
+}
+
+func (p *Parser) parseForStatement() ast.Statement {
+	stmt := &ast.ForStatement{Token: p.curToken}
+	p.nextToken()
+
+	stmt.Init = p.parseStatement()
+	if stmt.Init == nil {
+		p.addError(stmt.Token.Line, "expected init statement in `orgy`")
+		return nil
+	}
+	if p.peekToken.Type != token.SEMICOLON {
+		p.addError(p.peekToken.Line, "expected `;` after orgy init, got %q", p.peekToken.Literal)
+		return nil
+	}
+	p.nextToken()
+
+	p.nextToken()
+	stmt.Cond = p.parseExpression(LOWEST)
+	if stmt.Cond == nil {
+		p.addError(stmt.Token.Line, "expected condition in `orgy`")
+		return nil
+	}
+	if p.peekToken.Type != token.SEMICOLON {
+		p.addError(p.peekToken.Line, "expected `;` after orgy condition, got %q", p.peekToken.Literal)
+		return nil
+	}
+	p.nextToken()
+
+	p.nextToken()
+	stmt.Post = p.parseStatement()
+	if stmt.Post == nil {
+		p.addError(stmt.Token.Line, "expected post statement in `orgy`")
+		return nil
+	}
+
+	if p.peekToken.Type == token.LBRACE {
+		p.nextToken()
+	}
+	if p.curToken.Type != token.LBRACE {
+		p.addError(p.curToken.Line, "expected `{` for orgy body, got %q", p.curToken.Literal)
+		return nil
+	}
+	stmt.Body = p.parseBlockStatement()
+	return stmt
 }
 
 func (p *Parser) parseBreakStatement() ast.Statement {
@@ -207,6 +286,22 @@ func (p *Parser) parseAssignStatement() ast.Statement {
 		return &ast.IndexAssignStatement{Token: stmt.Token, Left: ident, Index: idx, Value: val}
 	}
 
+	if isCompoundAssign(p.curToken.Type) {
+		op := compoundToBase(p.curToken.Literal)
+		p.nextToken()
+		val := p.parseExpression(LOWEST)
+		if val == nil {
+			p.addError(p.curToken.Line, "expected expression after compound assignment")
+			return nil
+		}
+		return &ast.CompoundAssignStatement{
+			Token:    stmt.Token,
+			Name:     ident,
+			Operator: op,
+			Value:    val,
+		}
+	}
+
 	if p.curToken.Type != token.ASSIGN {
 		p.addError(p.curToken.Line, "expected `=` after identifier `%s`, got %q", ident.Value, p.curToken.Literal)
 		return nil
@@ -219,6 +314,28 @@ func (p *Parser) parseAssignStatement() ast.Statement {
 		return nil
 	}
 	return stmt
+}
+
+func isCompoundAssign(t token.Type) bool {
+	switch t {
+	case token.PLUS_ASSIGN, token.MINUS_ASSIGN, token.STAR_ASSIGN, token.SLASH_ASSIGN:
+		return true
+	}
+	return false
+}
+
+func compoundToBase(lit string) string {
+	switch lit {
+	case "+=":
+		return "+"
+	case "-=":
+		return "-"
+	case "*=":
+		return "*"
+	case "/=":
+		return "/"
+	}
+	return ""
 }
 
 func (p *Parser) parseLoopStatement() *ast.LoopStatement {
@@ -288,6 +405,27 @@ func (p *Parser) parseExpressionOrAssignStatement() ast.Statement {
 		return nil
 	}
 
+	if isCompoundAssign(p.peekToken.Type) {
+		p.nextToken()
+		op := compoundToBase(p.curToken.Literal)
+		p.nextToken()
+		val := p.parseExpression(LOWEST)
+		if val == nil {
+			p.addError(startToken.Line, "expected expression after compound assignment")
+			return nil
+		}
+		if ident, ok := expr.(*ast.Identifier); ok {
+			return &ast.CompoundAssignStatement{
+				Token:    token.Token{Type: token.SHIT, Literal: "shit", Line: startToken.Line},
+				Name:     ident,
+				Operator: op,
+				Value:    val,
+			}
+		}
+		p.addError(startToken.Line, "invalid compound assignment target")
+		return nil
+	}
+
 	if p.peekToken.Type == token.ASSIGN {
 		p.nextToken()
 		p.nextToken()
@@ -333,11 +471,11 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		left = &ast.IntegerLiteral{Token: p.curToken, Value: val}
 	case token.STRING:
 		left = &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
-	case token.TRUE:
+	case token.TRUE, token.BULLSHIT:
 		left = &ast.Boolean{Token: p.curToken, Value: true}
-	case token.FALSE:
+	case token.FALSE, token.NOBULLSHIT:
 		left = &ast.Boolean{Token: p.curToken, Value: false}
-	case token.IDENT:
+	case token.IDENT, token.STR, token.ARR, token.FILE:
 		left = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 	case token.BANG, token.MINUS:
 		left = p.parsePrefixExpression()
@@ -405,6 +543,8 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 		return p.parseCallExpression(left)
 	case token.LBRACKET:
 		return p.parseIndexExpression(left)
+	case token.DOT:
+		return p.parseMemberExpression(left)
 	}
 	expr := &ast.InfixExpression{Token: p.curToken, Left: left, Operator: p.curToken.Literal}
 	precedence := p.curPrecedence()
@@ -413,6 +553,18 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	if expr.Right == nil {
 		return nil
 	}
+	return expr
+}
+
+// NEW: obj.field
+func (p *Parser) parseMemberExpression(object ast.Expression) ast.Expression {
+	expr := &ast.MemberExpression{Token: p.curToken, Object: object}
+	if p.peekToken.Type != token.IDENT {
+		p.addError(p.peekToken.Line, "expected member name after `.`, got %q", p.peekToken.Literal)
+		return nil
+	}
+	p.nextToken()
+	expr.Member = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 	return expr
 }
 

@@ -1,0 +1,15 @@
+// namespace.fuck: 演示 str. / arr. 命名空间
+fuck str.len("hello")
+fuck str.upper("abc")
+fuck str.trim("  x  ")
+fuck str.split("a,b,c", ",")
+
+shit a = [1, 2, 3]
+arr.push(a, 4)
+fuck arr.len(a)
+fuck arr.pop(a)
+fuck arr.slice(a, 1, 3)
+
+shit h = {"x": 1, "y": 2}
+fuck arr.len(arr.keys(h))
+fuck arr.len(arr.values(h))

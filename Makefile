@@ -28,6 +28,9 @@ release: clean
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(APP_NAME)-linux-arm64 $(CMD_PATH)
 	CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(APP_NAME)-linux-riscv64 $(CMD_PATH)
 	
+	# Linux LoongArch64 (NEW)
+	CGO_ENABLED=0 GOOS=linux GOARCH=loong64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(APP_NAME)-linux-loong64 $(CMD_PATH)
+	
 	# Windows (amd64, arm64)
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(APP_NAME)-windows-amd64.exe $(CMD_PATH)
 	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(APP_NAME)-windows-arm64.exe $(CMD_PATH)

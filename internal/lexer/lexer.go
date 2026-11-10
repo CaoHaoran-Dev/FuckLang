@@ -45,13 +45,33 @@ func (l *Lexer) NextToken() token.Token {
 			tok = token.Token{Type: token.ASSIGN, Literal: string(l.ch), Line: line}
 		}
 	case '+':
-		tok = token.Token{Type: token.PLUS, Literal: string(l.ch), Line: line}
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = token.Token{Type: token.PLUS_ASSIGN, Literal: "+=", Line: line}
+		} else {
+			tok = token.Token{Type: token.PLUS, Literal: string(l.ch), Line: line}
+		}
 	case '-':
-		tok = token.Token{Type: token.MINUS, Literal: string(l.ch), Line: line}
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = token.Token{Type: token.MINUS_ASSIGN, Literal: "-=", Line: line}
+		} else {
+			tok = token.Token{Type: token.MINUS, Literal: string(l.ch), Line: line}
+		}
 	case '*':
-		tok = token.Token{Type: token.STAR, Literal: string(l.ch), Line: line}
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = token.Token{Type: token.STAR_ASSIGN, Literal: "*=", Line: line}
+		} else {
+			tok = token.Token{Type: token.STAR, Literal: string(l.ch), Line: line}
+		}
 	case '/':
-		tok = token.Token{Type: token.SLASH, Literal: string(l.ch), Line: line}
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = token.Token{Type: token.SLASH_ASSIGN, Literal: "/=", Line: line}
+		} else {
+			tok = token.Token{Type: token.SLASH, Literal: string(l.ch), Line: line}
+		}
 	case '!':
 		if l.peekChar() == '=' {
 			ch := l.ch
@@ -80,6 +100,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.COMMA, Literal: string(l.ch), Line: line}
 	case ':':
 		tok = token.Token{Type: token.COLON, Literal: string(l.ch), Line: line}
+	case '.':
+		tok = token.Token{Type: token.DOT, Literal: string(l.ch), Line: line}
 	case ';':
 		tok = token.Token{Type: token.SEMICOLON, Literal: string(l.ch), Line: line}
 	case '(':
@@ -120,7 +142,6 @@ func (l *Lexer) NextToken() token.Token {
 	return tok
 }
 
-// 跳过空白和 // 行注释
 func (l *Lexer) skipWhitespaceAndComments() {
 	for {
 		for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
@@ -152,10 +173,9 @@ func (l *Lexer) readNumber() string {
 	return l.input[pos:l.pos]
 }
 
-// 支持转义：\" \\ \n \t \r
 func (l *Lexer) readString() string {
 	var out []byte
-	l.readChar() // 跳过起始引号
+	l.readChar()
 	for {
 		if l.ch == '"' || l.ch == 0 {
 			break

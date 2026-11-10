@@ -23,6 +23,7 @@ const (
 	ARRAY        Type = "ARRAY"
 	HASH         Type = "HASH"
 	BREAK        Type = "BREAK"
+	CONTINUE     Type = "CONTINUE"
 )
 
 type Object interface {
@@ -55,11 +56,15 @@ type ReturnValue struct{ Value Object }
 func (rv *ReturnValue) Type() Type      { return RETURN_VALUE }
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
 
-// BreakValue 在循环体内传播 break 信号
 type BreakValue struct{}
 
 func (bv *BreakValue) Type() Type      { return BREAK }
 func (bv *BreakValue) Inspect() string { return "break" }
+
+type ContinueValue struct{}
+
+func (cv *ContinueValue) Type() Type      { return CONTINUE }
+func (cv *ContinueValue) Inspect() string { return "continue" }
 
 type Error struct {
 	Message string
