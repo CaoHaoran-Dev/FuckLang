@@ -1,7 +1,7 @@
 # FuckLang
 
 > A lightweight, Turing-complete scripting language where the keywords are English profanity.
-
+![FuckLang](images/FuckLangDemoImage.png)
 ---
 
 ## Overview
